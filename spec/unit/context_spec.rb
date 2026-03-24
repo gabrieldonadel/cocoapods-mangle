@@ -2,21 +2,25 @@ require File.expand_path('../../spec_helper', __FILE__)
 require 'cocoapods_mangle/context'
 
 describe CocoapodsMangle::Context do
-  let(:umbrella_targets) do
+  let(:pod_target_a1) { instance_double('pod target A1', label: 'PodA1') }
+  let(:pod_target_a2) { instance_double('pod target A2', label: 'PodA2') }
+  let(:pod_target_b1) { instance_double('pod target B1', label: 'PodB1') }
+  let(:pod_target_c1) { instance_double('pod target C1', label: 'PodC1') }
+  let(:aggregate_targets) do
     [
-      instance_double('umbrella target A', cocoapods_target_label: 'Pods-A', user_targets: [instance_double('target A', name: 'A')]),
-      instance_double('umbrella target B', cocoapods_target_label: 'Pods-B', user_targets: [instance_double('target B', name: 'B')]),
-      instance_double('umbrella target C', cocoapods_target_label: 'Pods-C', user_targets: [instance_double('target C', name: 'C')])
+      instance_double('aggregate target A', label: 'Pods-A', user_targets: [instance_double('target A', name: 'A')], pod_targets: [pod_target_a1, pod_target_a2]),
+      instance_double('aggregate target B', label: 'Pods-B', user_targets: [instance_double('target B', name: 'B')], pod_targets: [pod_target_b1, pod_target_a1]),
+      instance_double('aggregate target C', label: 'Pods-C', user_targets: [instance_double('target C', name: 'C')], pod_targets: [pod_target_c1])
     ]
   end
-  let(:installer_context) { instance_double('installer context', umbrella_targets: umbrella_targets) }
+  let(:installer) { instance_double('installer', aggregate_targets: aggregate_targets) }
   let(:options) { {} }
-  let(:subject) { CocoapodsMangle::Context.new(installer_context, options) }
+  let(:subject) { CocoapodsMangle::Context.new(installer, options) }
 
   context '.xcconfig_path' do
     before do
-      allow(installer_context).to receive_message_chain(:sandbox, :target_support_files_root).and_return( Pathname.new('/support_files') )
-      allow(installer_context).to receive_message_chain(:sandbox, :root, :parent).and_return( Pathname.new('/parent') )
+      allow(installer).to receive_message_chain(:sandbox, :target_support_files_root).and_return( Pathname.new('/support_files') )
+      allow(installer).to receive_message_chain(:sandbox, :root, :parent).and_return( Pathname.new('/parent') )
     end
 
     context 'No options' do
@@ -36,7 +40,7 @@ describe CocoapodsMangle::Context do
   context '.mangle_prefix' do
     context 'No options' do
       before do
-        allow(umbrella_targets.first).to receive_message_chain(:user_project, :path).and_return('path/to/Project.xcodeproj')
+        allow(aggregate_targets.first).to receive_message_chain(:user_project, :path).and_return('path/to/Project.xcodeproj')
       end
 
       it 'gives the project name as the prefix' do
@@ -46,7 +50,7 @@ describe CocoapodsMangle::Context do
 
     context 'No options with space in project name' do
       before do
-        allow(umbrella_targets.first).to receive_message_chain(:user_project, :path).and_return('path/to/Project Name.xcodeproj')
+        allow(aggregate_targets.first).to receive_message_chain(:user_project, :path).and_return('path/to/Project Name.xcodeproj')
       end
 
       it 'gives the project name with underscores as the prefix' do
@@ -67,7 +71,7 @@ describe CocoapodsMangle::Context do
     let(:pods_project) { instance_double('pods project', path: 'path/to/Pods.xcodeproj') }
 
     before do
-      allow(installer_context).to receive(:pods_project).and_return(pods_project)
+      allow(installer).to receive(:pods_project).and_return(pods_project)
     end
 
     it 'gives the project path' do
@@ -77,15 +81,15 @@ describe CocoapodsMangle::Context do
 
   context '.pod_target_labels' do
     context 'No options' do
-      it 'gives all targets' do
-        expect(subject.pod_target_labels).to eq(['Pods-A', 'Pods-B', 'Pods-C'])
+      it 'gives all unique pod targets across aggregate targets' do
+        expect(subject.pod_target_labels).to eq(['PodA1', 'PodA2', 'PodB1', 'PodC1'])
       end
     end
 
     context 'With targets' do
       let(:options) { { targets: ['A', 'B'] } }
-      it 'gives only requested targets' do
-        expect(subject.pod_target_labels).to eq(['Pods-A', 'Pods-B'])
+      it 'gives only pod targets from requested aggregate targets' do
+        expect(subject.pod_target_labels).to eq(['PodA1', 'PodA2', 'PodB1'])
       end
     end
   end
@@ -97,7 +101,7 @@ describe CocoapodsMangle::Context do
     let(:release_build_configuration) { double('release') }
 
     before do
-      allow(installer_context).to receive(:pods_project).and_return(pods_project)
+      allow(installer).to receive(:pods_project).and_return(pods_project)
       allow(pods_project).to receive(:targets).and_return([pod_target])
       build_configurations = [debug_build_configuration, release_build_configuration]
       allow(pod_target).to receive(:build_configurations).and_return(build_configurations)
@@ -118,7 +122,7 @@ describe CocoapodsMangle::Context do
     let(:options) { { targets: ['A'] } }
 
     before do
-      allow(umbrella_targets.first).to receive(:specs).and_return([spec_A, spec_B])
+      allow(aggregate_targets.first).to receive(:specs).and_return([spec_A, spec_B])
     end
 
     it 'gives the checksum' do

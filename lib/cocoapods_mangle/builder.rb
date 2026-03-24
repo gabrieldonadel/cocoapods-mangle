@@ -36,7 +36,7 @@ module CocoapodsMangle
       Pod::UI.message "- Building '#{target}'"
       output = `xcodebuild -project "#{@pods_project_path}" -target "#{target}" -configuration Release -sdk iphonesimulator build 2>&1`
       unless $?.success?
-        raise "error: Building the Pods target '#{target}' failed.\ This is the build log:\n#{output}"
+        Pod::UI.warn "Building the Pods target '#{target}' failed, skipping its symbols for mangling."
       end
     end
 

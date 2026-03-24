@@ -1,5 +1,5 @@
 require 'cocoapods'
-require 'cocoapods_mangle/config'
+require_relative 'config'
 
 module CocoapodsMangle
   # Runs the post mangling post install action

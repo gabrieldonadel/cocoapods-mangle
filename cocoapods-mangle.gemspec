@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.description = 'Mangling your dependencies symbols allows more than '    \
                      'one copy of a dependency to exist without errors. This ' \
                      'plugin mangles your dependecies to make this possible'
-  spec.files            = Dir['lib/**/*.rb']
+  spec.files            = Dir['lib/**/*.rb'] + Dir['scripts/**/*.rb']
   spec.test_files       = Dir['spec/**/*.rb']
   spec.extra_rdoc_files = ['README.md', 'CHANGELOG.md']
   spec.require_paths    = ['lib']

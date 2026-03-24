@@ -1,7 +1,7 @@
 require 'xcodeproj'
 require 'cocoapods'
-require 'cocoapods_mangle/builder'
-require 'cocoapods_mangle/defines'
+require_relative 'builder'
+require_relative 'defines'
 
 module CocoapodsMangle
   # Manages xcconfig files for configuring mangling.
